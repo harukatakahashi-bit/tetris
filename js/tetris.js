@@ -49,6 +49,7 @@ class Tetris {
             'L': this.COLORS.ORANGE
         };
         
+        this.isRunning = true;  // メインループ制御用フラグ
         this.init();
         this.bindEvents();
         this.run();
@@ -324,9 +325,11 @@ class Tetris {
         this.keydownHandler = (event) => {
             if (this.gameOver) {
                 if (event.key.toLowerCase() === 'r') {
-                    location.reload(); // ブラウザをリロードしてゲームをリセット
+                    this.init();  // ゲーム状態をリセット
+                    this.gameOver = false;  // ゲームオーバーフラグをクリア
+                    return;
                 } else if (event.key.toLowerCase() === 'q') {
-                    // ゲーム終了の処理
+                    this.isRunning = false;  // ゲームを完全に終了
                 }
                 return;
             }
@@ -363,7 +366,12 @@ class Tetris {
     }
     
     async run() {
-        while (!this.gameOver) {
+        while (this.isRunning) {  // isRunningフラグでメインループを制御
+            if (this.gameOver) {
+                await new Promise(requestAnimationFrame);
+                continue;
+            }
+
             const currentTime = Date.now();
             
             if (currentTime - this.lastDropTime > this.dropSpeed) {
