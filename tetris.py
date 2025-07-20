@@ -61,13 +61,16 @@ class Tetris:
         self.field = [[0] * FIELD_WIDTH for _ in range(FIELD_HEIGHT)]
         self.score = 0
         self.game_over = False
+        self.next_piece = random.choice(list(TETROMINOS.keys()))
         self.new_piece()
         self.last_drop_time = time.time()
         self.drop_speed = 1.0  # 1秒ごとに落下
 
     def new_piece(self):
-        # 新しいテトリミノを生成
-        self.current_piece = random.choice(list(TETROMINOS.keys()))
+        # 次のテトリミノを現在のテトリミノとして設定
+        self.current_piece = self.next_piece
+        # 新しい次のテトリミノを生成
+        self.next_piece = random.choice(list(TETROMINOS.keys()))
         self.current_rotation = 0
         self.current_x = FIELD_WIDTH // 2 - len(TETROMINOS[self.current_piece][0]) // 2
         self.current_y = 0
@@ -105,18 +108,50 @@ class Tetris:
                     self.field[self.current_y + i][self.current_x + j] = self.current_piece
 
     def clear_lines(self):
-        # 完成したラインを消去
-        lines_cleared = 0
-        i = FIELD_HEIGHT - 1
-        while i >= 0:
+        # 完成したラインを探す
+        lines_to_clear = []
+        for i in range(FIELD_HEIGHT - 1, -1, -1):
             if all(self.field[i]):
-                del self.field[i]
+                lines_to_clear.append(i)
+        
+        if lines_to_clear:
+            lines_count = len(lines_to_clear)
+            flash_count = 3 if lines_count == 1 else 5  # 2列以上で点滅回数増加
+            flash_colors = [COLORS['WHITE']]  # 1列の場合は白のみ
+            
+            # 2列以上の場合は虹色のエフェクト
+            if lines_count >= 2:
+                flash_colors = [
+                    COLORS['RED'],
+                    COLORS['YELLOW'],
+                    COLORS['GREEN'],
+                    COLORS['CYAN'],
+                    COLORS['BLUE']
+                ]
+            
+            # エフェクト表示
+            for _ in range(flash_count):
+                for color in flash_colors:
+                    # 色を変えて光らせる
+                    for line in lines_to_clear:
+                        for x in range(FIELD_WIDTH):
+                            pygame.draw.rect(self.screen, color,
+                                          (x * BLOCK_SIZE, line * BLOCK_SIZE,
+                                           BLOCK_SIZE - 1, BLOCK_SIZE - 1))
+                    pygame.display.flip()
+                    pygame.time.delay(30)  # 待機時間を短く
+                
+                # 元の色に戻す
+                self.draw()
+                pygame.time.delay(30)
+
+            # ラインを消去
+            for line in lines_to_clear:
+                del self.field[line]
                 self.field.insert(0, [0] * FIELD_WIDTH)
-                lines_cleared += 1
-            else:
-                i -= 1
-        # スコア計算
-        if lines_cleared:
+
+            # スコア計算
+            lines_cleared = len(lines_to_clear)
             self.score += (100 * lines_cleared) * lines_cleared
 
     def get_ghost_position(self):
@@ -170,10 +205,34 @@ class Tetris:
                                    (self.current_y + i) * BLOCK_SIZE,
                                    BLOCK_SIZE - 1, BLOCK_SIZE - 1))
 
+        # サイドパネルの背景
+        pygame.draw.rect(self.screen, (30, 30, 30),
+                       (FIELD_WIDTH * BLOCK_SIZE, 0,
+                        SCREEN_WIDTH - FIELD_WIDTH * BLOCK_SIZE, SCREEN_HEIGHT))
+
         # スコアの表示
         font = pygame.font.Font(None, 36)
         score_text = font.render(f'Score: {self.score}', True, COLORS['WHITE'])
         self.screen.blit(score_text, (FIELD_WIDTH * BLOCK_SIZE + 10, 10))
+
+        # NEXT表示
+        next_text = font.render('NEXT', True, COLORS['WHITE'])
+        self.screen.blit(next_text, (FIELD_WIDTH * BLOCK_SIZE + 10, 60))
+
+        # 次のテトリミノの表示
+        next_shape = TETROMINOS[self.next_piece]
+        shape_height = len(next_shape) * BLOCK_SIZE
+        shape_width = len(next_shape[0]) * BLOCK_SIZE
+        offset_x = FIELD_WIDTH * BLOCK_SIZE + (SCREEN_WIDTH - FIELD_WIDTH * BLOCK_SIZE - shape_width) // 2
+        offset_y = 100
+
+        for i, row in enumerate(next_shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    pygame.draw.rect(self.screen, TETROMINO_COLORS[self.next_piece],
+                                  (offset_x + j * BLOCK_SIZE,
+                                   offset_y + i * BLOCK_SIZE,
+                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1))
 
         pygame.display.flip()
 
