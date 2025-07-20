@@ -76,12 +76,54 @@ class Tetris {
         this.currentY = 0;
     }
     
+    getWallKicks(pieceType, rotationState, direction) {
+        // SRSのウォールキックテストデータ
+        const wallKickData = {
+            'I': [
+                [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],  // 0->R
+                [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],  // R->2
+                [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],  // 2->L
+                [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]]   // L->0
+            ],
+            'JLSTZ': [
+                [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],  // 0->R
+                [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],      // R->2
+                [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],     // 2->L
+                [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]]    // L->0
+            ]
+        };
+
+        const testData = pieceType === 'I' ? wallKickData['I'] : wallKickData['JLSTZ'];
+        return testData[rotationState].map(([x, y]) => direction === 1 ? [x, y] : [-x, -y]);
+    }
+
     rotatePiece() {
+        if (this.currentPiece === 'O') return; // O piece doesn't rotate
+        
+        const currentRotation = this.currentRotationState || 0;
+        const newRotationState = (currentRotation + 1) % 4;
+        
+        // テトリミノを回転
         const shape = this.TETROMINOS[this.currentPiece];
         const rotated = shape[0].map((_, i) => shape.map(row => row[row.length - 1 - i]));
-        if (this.isValidMove(rotated, this.currentX, this.currentY)) {
-            this.TETROMINOS[this.currentPiece] = rotated;
+        
+        // ウォールキックテストを実行
+        const kicks = this.getWallKicks(
+            this.currentPiece,
+            currentRotation,
+            1
+        );
+        
+        for (const [kickX, kickY] of kicks) {
+            if (this.isValidMove(rotated, this.currentX + kickX, this.currentY + kickY)) {
+                this.TETROMINOS[this.currentPiece] = rotated;
+                this.currentX += kickX;
+                this.currentY += kickY;
+                this.currentRotationState = newRotationState;
+                return true;
+            }
         }
+        return false;
     }
     
     isValidMove(shape, x, y) {
@@ -275,10 +317,15 @@ class Tetris {
     }
     
     bindEvents() {
-        document.addEventListener('keydown', (event) => {
+        if (this.keydownHandler) {
+            document.removeEventListener('keydown', this.keydownHandler);
+        }
+        
+        this.keydownHandler = (event) => {
             if (this.gameOver) {
                 if (event.key === ' ') {
                     this.init();
+                    this.bindEvents(); // イベントリスナーを再バインド
                 } else if (event.key.toLowerCase() === 'q') {
                     // ゲーム終了の処理
                 }
@@ -311,7 +358,9 @@ class Tetris {
                     break;
             }
             this.draw();
-        });
+        };
+        
+        document.addEventListener('keydown', this.keydownHandler);
     }
     
     async run() {
