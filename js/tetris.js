@@ -148,8 +148,8 @@ class Tetris {
                 await new Promise(resolve => setTimeout(resolve, 30));
             }
             
-            // ラインを消去
-            linesToClear.forEach(line => {
+            // ラインを消去（上から順に処理するために並べ替え）
+            linesToClear.sort((a, b) => a - b).forEach(line => {
                 this.field.splice(line, 1);
                 this.field.unshift(Array(this.FIELD_WIDTH).fill(0));
             });
