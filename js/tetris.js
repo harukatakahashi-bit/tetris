@@ -323,7 +323,7 @@ class Tetris {
         
         this.keydownHandler = (event) => {
             if (this.gameOver) {
-                if (event.key === ' ') {
+                if (event.key.toLowerCase() === 'r') {
                     this.init();
                     this.bindEvents(); // イベントリスナーを再バインド
                 } else if (event.key.toLowerCase() === 'q') {
@@ -391,7 +391,7 @@ class Tetris {
                 this.ctx.font = '36px Arial';
                 
                 const gameOverText = 'GAME OVER';
-                const retryText = 'Press SPACE to Retry';
+                const retryText = 'Press R to Retry';
                 const quitText = 'Press Q to Quit';
                 
                 this.ctx.fillText(
