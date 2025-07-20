@@ -325,7 +325,7 @@ class Tetris {
             if (this.gameOver) {
                 if (event.key.toLowerCase() === 'r') {
                     this.init();
-                    this.bindEvents(); // イベントリスナーを再バインド
+                    this.run(); // ゲームのメインループを再開
                 } else if (event.key.toLowerCase() === 'q') {
                     // ゲーム終了の処理
                 }
